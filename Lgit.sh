@@ -102,6 +102,7 @@ Lgit_exec(){
     local link_prefix
     local image_prefix
     local args
+    local ref
     local ret
 
     if [[ -z "$org_git" ]]; then
@@ -140,10 +141,18 @@ Lgit_exec(){
         cd "$real_git_path"
         real_git_path=`pwd`
 
-        rm index || {
-            print_error "Remove index failed."
-            exit 1
-        }
+        if [ -f "$work_git_path/org_HEAD" ]; then
+            ref=`cat $work_git_path/org_HEAD | awk '{print $NF}'`
+        else
+            ref=`cat $work_git_path/HEAD | awk '{print $NF}'`
+        fi
+        if [[ ! -f "$real_git_path/$ref" ]]; then
+            print_error "Invalid HEAD '$ref'. Maybe you have renamed the branch. \
+If you known the name of new branch, run 'echo ref: refs/heads/NewBranchName >$work_git_path/HEAD' to fix it."
+            rm "$real_git_path/HEAD"
+            $org_git --git-dir="$real_git_path" $@
+            exit $?
+        fi
 
         if [[ -n "$git_dir" ]]; then
             # Fake git repository 
@@ -166,6 +175,11 @@ Lgit_exec(){
             print_error "'$real_git_path/index.lock' exists, maybe another instance is running."
             exit 1
         fi
+
+        rm index || {
+            print_error "Remove index failed."
+            exit 1
+        }
         
         ln -s "${link_prefix}index" index || {
             print_error "Link index failed."
@@ -310,6 +324,7 @@ Lgit_install(){
 Lgit_uninstall(){
     if [[ -z "$org_git" ]]; then
         print_error "Lgit is not installed."
+        exit 1
     fi
 
     print_info "Remove '$self'"
