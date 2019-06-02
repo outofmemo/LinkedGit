@@ -101,6 +101,7 @@ Lgit_exec(){
     local real_git_path
     local link_prefix
     local image_prefix
+    local args
     local ret
 
     if [[ -z "$org_git" ]]; then
@@ -125,7 +126,7 @@ Lgit_exec(){
     else 
         git_dir=''
         real_git_path=".git"
-    fi  
+    fi
 
     if [[ -n "$git_dir" ]]; then
         [[ -f "$real_git_path/org_HEAD" && -f "$real_git_path/org_index" ]] || {
@@ -181,7 +182,11 @@ Lgit_exec(){
 
         if [[ -n "$git_dir" ]]; then
             # Fake repository
-            $org_git --git-dir="$git_dir" $@
+            for arg in $@; do
+                # Remove argument '--git-dir=xxx'
+                [[ "$arg" != --git-dir=* ]] && args="$args$arg "
+            done
+            $org_git --git-dir="$git_dir" $args
         else
             # Real repository
             $org_git $@
@@ -393,11 +398,6 @@ Lgit_link(){
         print_error "Copy index failed."
         exit 1
     }
-
-    # ln -s "$git_path/refs/" .git/ || {
-    #     print_error "Link refs failed."
-    #     exit 1
-    # }
 
     echo "$git_path" > .git/git_dir || {
         print_error "Write git-dir failed."
