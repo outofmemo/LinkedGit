@@ -134,7 +134,7 @@ Lgit_exec(){
         }
     fi
 
-    if [[ -n "$git_dir" ]] || [[  -f "$real_git_path/org_HEAD" && -f "$real_git_path/org_index"  ]]; then
+    if [[ -n "$git_dir" ]] || [[ -f "$real_git_path/org_HEAD" && -f "$real_git_path/org_index" ]]; then
         # Make it absolute
         cd "$real_git_path"
         real_git_path=`pwd`
@@ -177,7 +177,7 @@ Lgit_exec(){
         }
 
         cd "$work_path"
-        trap "cat '$real_git_path/HEAD' > '${image_prefix}HEAD'" SIGTERM SIGINT SIGHUP SIGQUIT
+        trap "cat '$real_git_path/HEAD' > '${image_prefix}HEAD'; exit 1" SIGTERM SIGINT SIGHUP SIGQUIT
 
         if [[ -n "$git_dir" ]]; then
             # Fake repository
@@ -313,10 +313,10 @@ Lgit_uninstall(){
         exit 1
     }
 
-    print_info "Move '${self}_org' to '${self}''"
+    print_info "Move '$org_git' to '$self''"
 
-    mv "${self}_org" "${self}" || {
-        print_error "Move '${self}_org' failed."
+    mv "$org_git" "$self" || {
+        print_error "Move '$org_git' failed."
         exit 1
     }
 
@@ -327,6 +327,12 @@ Lgit_link(){
     local git_path=$2
     local branch=$3
     local git_dir
+    local content
+
+    if [[ -z "$org_git" ]]; then
+        print_error "Lgit is not installed, run '$0 install' first."
+        exit 1
+    fi
 
     if [[ -z "$git_path" ]]; then
         print_error "Git path must be specified."
@@ -341,12 +347,22 @@ Lgit_link(){
         exit 1
     fi
 
+    if [[ -d .git ]]; then
+        print_error "This workspace seems to be a real git repository."
+        exit 1
+    fi
+
     if [[ "$git_path" != */.git ]] && [[ "$git_path" != */.git/ ]]; then
         if [[ "$git_path" = */ ]];then
             git_path=${git_path}.git
         else
             git_path=$git_path/.git
         fi
+    fi
+
+    if [[ ! -d "$git_path/objects" ]]; then
+        print_error "'$git_path' is not a git repository."
+        exit 1
     fi
 
     if [[ ! -f $git_path/org_HEAD ]]; then
@@ -363,37 +379,71 @@ Lgit_link(){
         }
     fi
 
-    if [[ ! -d .git ]]; then
-        mkdir .git || {
-            print_error "Create .git failed."
-            exit 1
-        }
+    mkdir .git || {
+        print_error "Create .git failed."
+        exit 1
+    }
 
-        cp "$git_path/org_HEAD" .git/HEAD || {
-            print_error "Copy HEAD failed."
-            exit 1
-        }
+    cp "$git_path/org_HEAD" .git/HEAD || {
+        print_error "Copy HEAD failed."
+        exit 1
+    }
 
-        echo "$git_path" > .git/git_dir || {
-            print_error "Write git-dir failed."
-            exit 1
-        }
+    cp "$git_path/org_index" .git/index || {
+        print_error "Copy index failed."
+        exit 1
+    }
 
-        print_info "Linked to '${git_path}'."
+    # ln -s "$git_path/refs/" .git/ || {
+    #     print_error "Link refs failed."
+    #     exit 1
+    # }
 
-        if [[ -n "$branch" ]]; then
-            if [[ -f $git_path/refs/heads/$branch ]]; then
-                Lgit_exec checkout "$branch"
-            else
-                Lgit_exec checkout -b "$branch"
-            fi
-        else
-            print_warning "It's better to keep workspaces on different branchs, \
-use 'git checkout [-b] <branch>' to checkout a branch."
+    echo "$git_path" > .git/git_dir || {
+        print_error "Write git-dir failed."
+        exit 1
+    }
+
+    print_info "Linked to '${git_path}'."
+
+    if [[ -n "$branch" ]]; then
+        content=`ls -A |grep -v .git`
+        if [[ -n "$content" ]]; then
+            print_warning "This workspace is not empty, the files will be overridden. Do you want to continue? [yes/no]"
+            while read answer; do
+                if [[ "$answer" = 'yes' ]] || [[ "$answer" = 'y' ]] || [[ "$answer" = 'Y' ]] || [[ "$answer" = 'Yes' ]]; then
+                    break
+                fi
+
+                if [[ "$answer" = "no" ]] || [[ "$answer" = "n" ]] || [[ "$answer" = "N" ]] || [[ "$answer" = "No" ]]; then
+                    print_warning "Abort. Run 'git checkout .' manually to checkout files."
+                    return
+                fi
+                print_warning "Please type 'yes' or 'no':"
+            done
         fi
 
-    else 
-        print_error "This workspace seems to be a real git repository."
+        print_info "Checkout '$branch'..."
+
+        if [[ -f $git_path/refs/heads/$branch ]]; then
+            "$self" checkout "$branch" >/dev/null
+        else
+            "$self" checkout -b "$branch">/dev/null
+        fi
+
+        if [[ $? != '0' ]]; then
+            print_error "Checkout '$branch' failed."
+            exit 1
+        fi
+
+        print_info "Reset files..."
+        "$self" reset --hard HEAD || {
+            print_error "Checkout files failed."
+            exit 1
+        }
+    else
+        print_warning "It's better to keep workspaces on different branchs. \
+Use 'git checkout [-b] <branch>' to switch branch, then use 'git checkout .' to checkout files."
     fi
 
 }
@@ -404,15 +454,22 @@ Lgit_unlink(){
         exit 1
     fi
 
-    if [[ ! -f .git/git_dir ]] || [[ -d .git/refs ]]; then
-        print_error "This workspace seems to be a real git repository."
-        exit 1
+    if [[ ! -f .git/git_dir ]] || [[ -d .git/objects ]]; then
+        if [[ ! -f .git/org_HEAD ]]; then
+            # Orginal git repository
+            print_info "This workspace seems to be a real git repository, nothing to do."
+            return
+        else
+            # Git repository but has been linked
+            "$self" --version >/dev/null || exit 1
+        fi
+    else
+        # Fake git workspace
+        rm -r .git || {
+            print_error "Remove .git failed!"
+            exit 1
+        }
     fi
-
-    rm -r .git || {
-        print_error "Remove .git failed!"
-        exit 1
-    }
 
     print_info "Unlinked."
 }
@@ -432,3 +489,4 @@ case "$action" in
         Lgit_exec $@
         ;;
 esac
+
