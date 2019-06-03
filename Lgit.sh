@@ -65,7 +65,7 @@ resolve_relative_path() {
     done
     
     # Secondly, go to the common parent directory
-    if [[ -n "$work_path" && "$work_path" != "*/" ]]; then
+    if [[ -n "$work_path" && "$work_path" != */ ]]; then
         work_path=$work_path/
     fi
     while [[ -n "$work_path" ]]; do
@@ -148,7 +148,7 @@ Lgit_exec(){
         fi
         if [[ ! -f "$real_git_path/$ref" ]]; then
             print_error "Invalid HEAD '$ref'. Maybe you have renamed the branch. \
-If you known the name of new branch, run 'echo ref: refs/heads/NewBranchName >$work_git_path/HEAD' to fix it."
+If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$work_git_path/HEAD' to fix it."
             rm "$real_git_path/HEAD"
             $org_git --git-dir="$real_git_path" $@
             exit $?
