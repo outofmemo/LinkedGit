@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Lgit: Add multi-workspace support for git
-# Contact: oufme@outlook.com or https://github.com/outofmemo/Lgit/issue
+# LinkedGit --- A shell of git for multi-workspace support
+# Refer to https://github.com/outofmemo/LinkedGit for introduction.
+# Contact: oufme@outlook.com
 
 self=$0
 # Colors
@@ -18,7 +19,7 @@ print_warning(){
 }
 
 print_info(){
-    echo "Lgit: $1"
+    echo "LinkedGit: $1"
 }
 
 remove_relative_symbol() {
@@ -106,7 +107,7 @@ Lgit_exec(){
     local ret
 
     if [[ -z "$org_git" ]]; then
-        print_error "Lgit is not installed, run '$0 install' first."
+        print_error "LinkedGit is not installed, run '$0 install' first."
         exit 1
     fi
 
@@ -221,7 +222,7 @@ If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$wo
 }
 
 Lgit_help(){
-    echo "Lgit commands:"
+    echo "LinkedGit commands:"
     echo "      install                 Install Lgit."
     echo "      uninstall               Uninstall Lgit."
     echo "      link <path> [branch]    Link this workspace to a git repository."
@@ -240,7 +241,7 @@ write_script(){
         }
     fi
 
-    print_info "Writing Lgit to '$Lgit_path'."
+    print_info "Writing LinkedGit to '$Lgit_path'."
 
     IFS=''
     while read -r line; do
@@ -269,7 +270,7 @@ Lgit_install(){
     local bak_git_path
 
     if [[ -n "$org_git" ]]; then
-        print_error "Lgit is already installed."
+        print_error "LinkedGit is already installed."
         exit 1
     fi
 
@@ -286,9 +287,9 @@ Lgit_install(){
     fi
 
     cat "$exe_git_path" | grep -q  "Lgit_link()" && {
-        print_info "An old Lgit installed, uninstall '$exe_git_path'..."
+        print_info "An old LinkedGit is installed, uninstall '$exe_git_path'..."
         "$exe_git_path" uninstall || {
-            "Uninstall old Lgit failed."
+            print_error "Uninstall old LinkedGit failed."
             exit 1
         }
         "$self" install
@@ -323,7 +324,7 @@ Lgit_install(){
 
 Lgit_uninstall(){
     if [[ -z "$org_git" ]]; then
-        print_error "Lgit is not installed."
+        print_error "LinkedGit is not installed."
         exit 1
     fi
 
@@ -350,7 +351,7 @@ Lgit_link(){
     local content
 
     if [[ -z "$org_git" ]]; then
-        print_error "Lgit is not installed, run '$0 install' first."
+        print_error "LinkedGit is not installed, run '$0 install' first."
         exit 1
     fi
 
