@@ -225,8 +225,8 @@ If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$wo
 
 Lgit_help(){
     echo "LinkedGit commands:"
-    echo "      install                 Install Lgit."
-    echo "      uninstall               Uninstall Lgit."
+    echo "      install                 Install LinkedGit."
+    echo "      uninstall               Uninstall LinkedGit."
     echo "      link <path> [branch]    Link this workspace to a git repository."
     echo "      unlink                  Unlink this workspace."
 }
