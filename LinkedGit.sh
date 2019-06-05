@@ -160,7 +160,7 @@ If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$wo
             if [[ "$git_dir" = /* ]]; then
                 # If "git-dir" is an absolute path, use absolute path to link
                 link_prefix=$work_git_path/
-                git_dir=${work_path%/*}
+                git_dir=$real_git_path
             else
                 # If "git-dir" is an relative path, use relative path to link
                 resolve_relative_path "$work_git_path" "$real_git_path" link_prefix
