@@ -107,7 +107,7 @@ Lgit_exec(){
     local ret
 
     if [[ -z "$org_git" ]]; then
-        print_error "LinkedGit is not installed, run '$0 install' first."
+        print_error "LinkedGit is not installed, run '$self install' first."
         exit 1
     fi
 
@@ -116,7 +116,7 @@ Lgit_exec(){
 
     if [[ -z "$work_git_path" ]]; then
         # Can't find .git, let orginal git solve it
-        $org_git $@
+        "$org_git" "$@"
         exit $?
     fi
 
@@ -151,7 +151,7 @@ Lgit_exec(){
             print_error "Invalid HEAD '$ref'. Maybe you have renamed the branch. \
 If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$work_git_path/HEAD' to fix it."
             rm "$real_git_path/HEAD"
-            $org_git --git-dir="$real_git_path" --work-tree="$work_git_path/.." $@
+            "$org_git" --git-dir="$real_git_path" --work-tree="$work_git_path/.." "$@"
             exit $?
         fi
 
@@ -193,20 +193,25 @@ If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$wo
         }
 
         cd "$work_path"
-        trap "cat '$real_git_path/HEAD' > '${image_prefix}HEAD'; exit 1" SIGTERM SIGINT SIGHUP SIGQUIT
+        trap "cat \"$real_git_path/HEAD\" > \"${image_prefix}HEAD\"; exit 1" SIGTERM SIGINT SIGHUP SIGQUIT
 
         if [[ -n "$git_dir" ]]; then
             # Fake repository
-            for arg in $@; do
+            for arg in "$@"; do
                 # Remove argument '--git-dir=xxx' and '--work-tree=xxx'
                 if [[ "$arg" != --git-dir=* ]] && [[ "$arg" != --work-tree=* ]]; then
-                    args="$args$arg "
+                    # Quote if $arg contains space
+                    if [[ "$arg" != "${arg%[[:space:]]*}" ]]; then
+                        args="$args \"$arg\""
+                    else
+                        args="$args $arg"
+                    fi
                 fi
             done
-            $org_git --git-dir="$real_git_path" --work-tree="$work_git_path/.." $args
+            eval "\"$org_git\" --git-dir=\"$real_git_path\" --work-tree=\"$work_git_path/..\" $args"
         else
             # Real repository
-            $org_git $@
+            "$org_git" "$@"
         fi
         ret=$?
 
@@ -218,7 +223,7 @@ If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$wo
         exit $ret
     else 
         # Original real git repository 
-        $org_git $@
+        "$org_git" "$@"
         exit $?
     fi
 }
@@ -299,7 +304,7 @@ Lgit_install(){
     }
 
     if [[ -f "${exe_git_path}_org" ]]; then
-        bak_git_path="${exe_git_path}_org-"`date "%Y-%m-%d-%H-%M-%S"`
+        bak_git_path="${exe_git_path}_org-"`date "+%Y-%m-%d-%H-%M-%S"`
         print_warning "'${exe_git_path}_org' exists, backup it to '$bak_git_path'"
         mv "${exe_git_path}_org" "$bak_git_path" || {
             print_error "Backup '${exe_git_path}_org' failed."
@@ -354,7 +359,7 @@ Lgit_link(){
     local content
 
     if [[ -z "$org_git" ]]; then
-        print_error "LinkedGit is not installed, run '$0 install' first."
+        print_error "LinkedGit is not installed, run '$self install' first."
         exit 1
     fi
 
@@ -444,7 +449,7 @@ Lgit_link(){
 
         print_info "Checkout '$branch'..."
 
-        if [[ -f $git_path/refs/heads/$branch ]]; then
+        if [[ -f "$git_path/refs/heads/$branch" ]]; then
             "$self" checkout "$branch" "$start_point" >/dev/null
         else
             "$self" checkout -b "$branch" "$start_point" >/dev/null
@@ -495,17 +500,17 @@ Lgit_unlink(){
 
 action=$1
 if [[ -z "$action" ]]; then
-    $org_git
+    "$org_git"
     Lgit_help
     exit
 fi
 
 case "$action" in
     install|uninstall|link|unlink)
-        Lgit_$action $@
+        Lgit_$action "$@"
         ;;
     *)
-        Lgit_exec $@
+        Lgit_exec "$@"
         ;;
 esac
 
