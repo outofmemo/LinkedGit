@@ -225,10 +225,10 @@ If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$wo
 
 Lgit_help(){
     echo "LinkedGit commands:"
-    echo "      install                 Install LinkedGit."
-    echo "      uninstall               Uninstall LinkedGit."
-    echo "      link <path> [branch]    Link this workspace to a git repository."
-    echo "      unlink                  Unlink this workspace."
+    echo "    install                               Install LinkedGit."
+    echo "    uninstall                             Uninstall LinkedGit."
+    echo "    link <path> [branch [start_point]]    Link this workspace to a git repository."
+    echo "    unlink                                Unlink this workspace."
 }
 
 write_script(){
@@ -349,6 +349,7 @@ Lgit_uninstall(){
 Lgit_link(){
     local git_path=$2
     local branch=$3
+    local start_point=$4
     local git_dir
     local content
 
@@ -444,9 +445,9 @@ Lgit_link(){
         print_info "Checkout '$branch'..."
 
         if [[ -f $git_path/refs/heads/$branch ]]; then
-            "$self" checkout "$branch" >/dev/null
+            "$self" checkout "$branch" "$start_point" >/dev/null
         else
-            "$self" checkout -b "$branch">/dev/null
+            "$self" checkout -b "$branch" "$start_point" >/dev/null
         fi
 
         if [[ $? != '0' ]]; then
