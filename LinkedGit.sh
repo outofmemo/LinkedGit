@@ -151,7 +151,7 @@ Lgit_exec(){
             print_error "Invalid HEAD '$ref'. Maybe you have renamed the branch. \
 If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$work_git_path/HEAD' to fix it."
             rm "$real_git_path/HEAD"
-            $org_git --git-dir="$real_git_path" $@
+            $org_git --git-dir="$real_git_path" --work-tree="$work_git_path/.." $@
             exit $?
         fi
 
@@ -160,12 +160,10 @@ If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$wo
             if [[ "$git_dir" = /* ]]; then
                 # If "git-dir" is an absolute path, use absolute path to link
                 link_prefix=$work_git_path/
-                git_dir=$real_git_path
             else
                 # If "git-dir" is an relative path, use relative path to link
                 resolve_relative_path "$work_git_path" "$real_git_path" link_prefix
                 link_prefix=$link_prefix/
-                resolve_relative_path "$real_git_path" "$work_path" git_dir
             fi
             image_prefix=$work_git_path/
         else
@@ -200,10 +198,12 @@ If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$wo
         if [[ -n "$git_dir" ]]; then
             # Fake repository
             for arg in $@; do
-                # Remove argument '--git-dir=xxx'
-                [[ "$arg" != --git-dir=* ]] && args="$args$arg "
+                # Remove argument '--git-dir=xxx' and '--work-tree=xxx'
+                if [[ "$arg" != --git-dir=* ]] && [[ "$arg" != --work-tree=* ]]; then
+                    args="$args$arg "
+                fi
             done
-            $org_git --git-dir="$git_dir" $args
+            $org_git --git-dir="$real_git_path" --work-tree="$work_git_path/.." $args
         else
             # Real repository
             $org_git $@
