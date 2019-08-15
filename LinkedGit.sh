@@ -200,12 +200,7 @@ If you known the new name of this branch, run 'echo ref: refs/heads/NewName >$wo
             for arg in "$@"; do
                 # Remove argument '--git-dir=xxx' and '--work-tree=xxx'
                 if [[ "$arg" != --git-dir=* ]] && [[ "$arg" != --work-tree=* ]]; then
-                    # Quote if $arg contains space
-                    if [[ "$arg" != "${arg%[[:space:]]*}" ]]; then
-                        args="$args \"$arg\""
-                    else
-                        args="$args $arg"
-                    fi
+                    args="$args \"$arg\""
                 fi
             done
             eval "\"$org_git\" --git-dir=\"$real_git_path\" --work-tree=\"$work_git_path/..\" $args"
